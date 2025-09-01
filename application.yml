@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: coherence-cache-loader
+
+# Loader options
+loader:
+  cacheName: users
+  # one of: csv | json
+  format: csv
+  # classpath: prefix will load from resources; or give an absolute path
+  source: classpath:data/users.csv
+  # batch size for putAll
+  batchSize: 1000
+
+coherence:
+  # Cluster and config
+  cluster: demo-cluster
+  cache-config: classpath:coherence-cache-config.xml
+  # Optional system props can be passed via JVM args too
