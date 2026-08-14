@@ -1,0 +1,5 @@
+# Optional: only needed for YAML specs. JSON specs work with the stdlib alone.
+PyYAML>=6.0
+
+# Development only.
+pytest>=7.4
