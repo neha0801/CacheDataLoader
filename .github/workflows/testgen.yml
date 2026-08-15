@@ -1,0 +1,35 @@
+name: testgen
+
+on:
+  push:
+    paths:
+      - 'testgen/**'
+      - '.github/workflows/testgen.yml'
+  pull_request:
+    paths:
+      - 'testgen/**'
+      - '.github/workflows/testgen.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install -r testgen/requirements.txt
+      - name: Run tests
+        run: python -m pytest testgen/tests -q
+      - name: Check the committed example is up to date
+        run: |
+          python testgen/testgen.py \
+            --spec testgen/examples/bookstore-openapi.yaml \
+            --framework pytest --focus security --focus data-integrity \
+            --notes "Test tenant 'qa-1' is reset nightly. Librarian and member accounts are provisioned; a member may hold at most 5 concurrent loans." \
+            --out /tmp/expected-prompt.md
+          diff -u testgen/examples/bookstore-prompt.md /tmp/expected-prompt.md

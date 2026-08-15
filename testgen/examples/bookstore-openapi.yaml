@@ -1,0 +1,221 @@
+openapi: 3.0.3
+info:
+  title: Bookstore API
+  version: 1.2.0
+  description: |
+    A small lending API used as the worked example for testgen. It has enough
+    shape to exercise the summariser: bounded inputs, enums, an auth scheme,
+    a lifecycle, and a paginated list.
+servers:
+  - url: https://api.bookstore.example.com/v1
+security:
+  - bearerAuth: []
+paths:
+  /books:
+    get:
+      operationId: listBooks
+      summary: List books
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          description: Capped at 100 by the server.
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [available, on_loan, withdrawn]
+        - name: q
+          in: query
+          description: Free-text search over title and author.
+          schema: { type: string, minLength: 2, maxLength: 200 }
+      responses:
+        '200':
+          description: A page of books
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookPage'
+        '400':
+          description: Invalid pagination or filter
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    post:
+      operationId: createBook
+      summary: Add a book to the catalogue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BookCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Book' }
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: Caller is not a librarian
+        '409':
+          description: A book with this ISBN already exists
+  /books/{bookId}:
+    parameters:
+      - name: bookId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getBook
+      summary: Fetch one book
+      security: []
+      responses:
+        '200':
+          description: The book
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Book' }
+        '404':
+          description: No such book
+    patch:
+      operationId: updateBook
+      summary: Update a book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BookUpdate' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Book' }
+        '404':
+          description: No such book
+        '412':
+          description: If-Match precondition failed
+    delete:
+      operationId: deleteBook
+      summary: Withdraw a book from the catalogue
+      responses:
+        '204':
+          description: Withdrawn
+        '404':
+          description: No such book
+        '409':
+          description: Book is currently on loan
+  /books/{bookId}/loans:
+    parameters:
+      - name: bookId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: borrowBook
+      summary: Borrow a book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dueDate]
+              properties:
+                dueDate:
+                  type: string
+                  format: date
+                  description: Must be between 1 and 28 days from today.
+                notes:
+                  type: string
+                  maxLength: 500
+      responses:
+        '201':
+          description: Loan created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Loan' }
+        '409':
+          description: Already on loan, or borrower is at their limit
+        '422':
+          description: dueDate outside the allowed window
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Book:
+      type: object
+      required: [id, isbn, title, author, status]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        isbn: { type: string, pattern: '^\d{13}$' }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        author: { type: string, minLength: 1, maxLength: 200 }
+        publishedYear: { type: integer, minimum: 1450, maximum: 2100 }
+        status:
+          type: string
+          enum: [available, on_loan, withdrawn]
+          default: available
+        tags:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 40 }
+    BookCreate:
+      type: object
+      required: [isbn, title, author]
+      properties:
+        isbn: { type: string, pattern: '^\d{13}$' }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        author: { type: string, minLength: 1, maxLength: 200 }
+        publishedYear: { type: integer, minimum: 1450, maximum: 2100 }
+        tags:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 40 }
+    BookUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 300 }
+        author: { type: string, minLength: 1, maxLength: 200 }
+        tags:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 40 }
+    BookPage:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Book' }
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+    Loan:
+      type: object
+      required: [id, bookId, borrowerId, dueDate]
+      properties:
+        id: { type: string, format: uuid }
+        bookId: { type: string, format: uuid }
+        borrowerId: { type: string, format: uuid }
+        dueDate: { type: string, format: date }
+        returnedAt: { type: string, format: date-time, nullable: true }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        field: { type: string, nullable: true }
