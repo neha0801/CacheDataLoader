@@ -1,0 +1,6 @@
+id,name,email,department
+1,Ada Lovelace,ada@example.com,Engineering
+2,Grace Hopper,grace@example.com,Engineering
+3,Katherine Johnson,katherine@example.com,Research
+4,Radia Perlman,radia@example.com,Networking
+5,Barbara Liskov,barbara@example.com,Research

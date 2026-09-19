@@ -11,9 +11,17 @@ loader:
   source: classpath:data/users.csv
   # batch size for putAll
   batchSize: 1000
+  # field in each record used as the cache key
+  keyField: id
+  # keep the JVM up after loading instead of exiting
+  keepAlive: false
 
 coherence:
   # Cluster and config
   cluster: demo-cluster
   cache-config: classpath:coherence-cache-config.xml
   # Optional system props can be passed via JVM args too
+
+logging:
+  level:
+    com.example.cacheloader: INFO

@@ -13,7 +13,7 @@
     <spring-boot.version>3.3.2</spring-boot.version>
     <!-- Choose ONE of the following (CE or commercial). Uncomment the one you use. -->
     <!-- Coherence CE (community edition) -->
-    <coherence.ce.version>24.06</coherence.ce.version>
+    <coherence.ce.version>24.09.3</coherence.ce.version>
     <!-- Oracle Coherence (commercial) -->
     <!-- <coherence.version>14.1.1-0-12</coherence.version> -->
   </properties>
@@ -76,6 +76,17 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>${spring-boot.version}</version>
+        <configuration>
+          <mainClass>com.example.cacheloader.CacheDataLoaderApplication</mainClass>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
